@@ -1,8 +1,14 @@
+import 'package:flutter/material.dart';
+
+import 'package:provider/provider.dart';
+
+import 'package:chat/helpers/show_alert.dart';
+
+import 'package:chat/services/auth.dart';
 import 'package:chat/widgets/blue_button.dart';
 import 'package:chat/widgets/custom_input.dart';
 import 'package:chat/widgets/labels.dart';
 import 'package:chat/widgets/logo.dart';
-import 'package:flutter/material.dart';
 
 class LoginPage extends StatelessWidget {
   @override
@@ -50,6 +56,8 @@ class __FormState extends State<_Form> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = Provider.of<Auth>(context);
+
     return Container(
       margin: EdgeInsets.only(top: 40.0),
       padding: EdgeInsets.symmetric(horizontal: 50.0),
@@ -68,12 +76,21 @@ class __FormState extends State<_Form> {
             isPassword: true,
           ),
           BlueButton(
-            text: 'enter',
-            onPressed: () {
-              print('Blue button tapped');
-              print(emailController.text);
-              print(passwordController.text);
-            },
+            text: 'Enter',
+            onPressed: auth.authenticating
+                ? null
+                : () async {
+                    FocusScope.of(context).unfocus();
+                    final loginOk = await auth.login(
+                        emailController.text.trim(),
+                        passwordController.text.trim());
+                    if (loginOk) {
+                      Navigator.pushReplacementNamed(context, 'users');
+                    } else {
+                      showAlert(
+                          context, 'Login error', 'Check tour credentials');
+                    }
+                  },
           ),
         ],
       ),

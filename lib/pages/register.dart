@@ -1,13 +1,15 @@
-import 'package:chat/helpers/show_alert.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
-import 'package:chat/services/auth.dart';
 
 import 'package:chat/widgets/blue_button.dart';
 import 'package:chat/widgets/custom_input.dart';
 import 'package:chat/widgets/labels.dart';
 import 'package:chat/widgets/logo.dart';
+
+import 'package:chat/helpers/show_alert.dart';
+import 'package:chat/services/socket.dart';
+
+import 'package:chat/services/auth.dart';
 
 class RegisterPage extends StatelessWidget {
   @override
@@ -58,6 +60,8 @@ class __FormState extends State<_Form> {
   Widget build(BuildContext context) {
     final auth = Provider.of<Auth>(context);
 
+    final socket = Provider.of<Socket>(context);
+
     return Container(
       margin: EdgeInsets.only(top: 40.0),
       padding: EdgeInsets.symmetric(horizontal: 50.0),
@@ -94,6 +98,7 @@ class __FormState extends State<_Form> {
                         emailController.text.trim(),
                         passwordController.text.trim());
                     if (registerOk == true) {
+                      socket.connect();
                       Navigator.pushReplacementNamed(context, 'users');
                     } else {
                       showAlert(context, 'Register error', registerOk);

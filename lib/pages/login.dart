@@ -1,3 +1,4 @@
+import 'package:chat/services/socket.dart';
 import 'package:flutter/material.dart';
 
 import 'package:provider/provider.dart';
@@ -57,6 +58,7 @@ class __FormState extends State<_Form> {
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<Auth>(context);
+    final socket = Provider.of<Socket>(context);
 
     return Container(
       margin: EdgeInsets.only(top: 40.0),
@@ -85,6 +87,7 @@ class __FormState extends State<_Form> {
                         emailController.text.trim(),
                         passwordController.text.trim());
                     if (loginOk) {
+                      socket.connect();
                       Navigator.pushReplacementNamed(context, 'users');
                     } else {
                       showAlert(

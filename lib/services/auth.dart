@@ -43,9 +43,10 @@ class Auth with ChangeNotifier {
 
   Future<bool> login(String email, String password) async {
     this.authenticating = true;
+    String uri = '${Environment.apiUrl}/login';
 
     final data = {'email': email, 'password': password};
-    final rsp = await http.post('${Environment.apiUrl}/login',
+    final rsp = await http.post(Uri.parse(uri),
         body: jsonEncode(data), headers: {'Content-Type': 'application/json'});
 
     this.authenticating = false;
@@ -63,8 +64,9 @@ class Auth with ChangeNotifier {
 
   Future register(String name, String email, String password) async {
     this.registering = true;
+    String uri = '${Environment.apiUrl}/login/new';
     final data = {'name': name, 'email': email, 'password': password};
-    final rsp = await http.post('${Environment.apiUrl}/login/new',
+    final rsp = await http.post(Uri.parse(uri),
         body: jsonEncode(data), headers: {'Content-Type': 'application/json'});
     this.registering = false;
     if (rsp.statusCode == 200 || rsp.statusCode == 201) {
@@ -79,9 +81,10 @@ class Auth with ChangeNotifier {
   }
 
   Future<bool> isLoggedIn() async {
+    String uri = '${Environment.apiUrl}/login/renew';
     final token = await _storage.read(key: 'token');
     print(token);
-    final rsp = await http.get('${Environment.apiUrl}/login/renew',
+    final rsp = await http.get(Uri.parse(uri),
         headers: {'Content-Type': 'application/json', 'x-token': token});
 
     if (rsp.statusCode == 200) {

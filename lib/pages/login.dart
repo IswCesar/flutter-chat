@@ -6,16 +6,19 @@ import 'package:provider/provider.dart';
 import 'package:chat/helpers/show_alert.dart';
 
 import 'package:chat/services/auth.dart';
-import 'package:chat/widgets/blue_button.dart';
-import 'package:chat/widgets/custom_input.dart';
+import 'package:chat/widgets/enter_button.dart';
 import 'package:chat/widgets/labels.dart';
 import 'package:chat/widgets/logo.dart';
+import 'package:chat/global/colors.dart';
+import 'package:chat/widgets/auth_input.dart';
 
 class LoginPage extends StatelessWidget {
+  final colors = new ColorApp();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xffF2F2F2),
+      backgroundColor: colors.loginBG,
       body: SafeArea(
         child: SingleChildScrollView(
           physics: BouncingScrollPhysics(),
@@ -25,18 +28,18 @@ class LoginPage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: <Widget>[
                 Logo(
-                  title: 'Login',
+                  title: 'CHIT-CHAT',
                 ),
                 _Form(),
                 Labels(
                   route: 'register',
-                  title: '¿No tienes cuenta?',
-                  subtitle: 'Crea una ahora!',
+                  title: "You don't have an acount?",
+                  subtitle: 'Contact us!',
                 ),
-                Text(
-                  'Términos y condiciones de uso',
-                  style: TextStyle(fontWeight: FontWeight.w200),
-                )
+                // Text(
+                //   'Términos y condiciones de uso',
+                //   style: TextStyle(fontWeight: FontWeight.w200),
+                // )
               ],
             ),
           ),
@@ -61,40 +64,38 @@ class __FormState extends State<_Form> {
     final socket = Provider.of<Socket>(context);
 
     return Container(
-      margin: EdgeInsets.only(top: 40.0),
       padding: EdgeInsets.symmetric(horizontal: 50.0),
       child: Column(
         children: <Widget>[
-          CustomInput(
+          AuthInput(
             icon: Icons.email,
             placeholder: "Email",
             textInputType: TextInputType.emailAddress,
             textEditingController: emailController,
           ),
-          CustomInput(
+          AuthInput(
             icon: Icons.lock,
             placeholder: "Password",
             textEditingController: passwordController,
             isPassword: true,
           ),
-          BlueButton(
-            text: 'Enter',
-            onPressed: auth.authenticating
-                ? null
-                : () async {
-                    FocusScope.of(context).unfocus();
-                    final loginOk = await auth.login(
-                        emailController.text.trim(),
-                        passwordController.text.trim());
-                    if (loginOk) {
-                      socket.connect();
-                      Navigator.pushReplacementNamed(context, 'users');
-                    } else {
-                      showAlert(
-                          context, 'Login error', 'Check tour credentials');
-                    }
-                  },
-          ),
+          EnterButton(
+              text: 'Enter',
+              onPressed: auth.authenticating
+                  ? null
+                  : () async {
+                      FocusScope.of(context).unfocus();
+                      final loginOk = await auth.login(
+                          emailController.text.trim(),
+                          passwordController.text.trim());
+                      if (loginOk) {
+                        socket.connect();
+                        Navigator.pushReplacementNamed(context, 'home');
+                      } else {
+                        showAlert(
+                            context, 'Login error', 'Check tour credentials');
+                      }
+                    }),
         ],
       ),
     );

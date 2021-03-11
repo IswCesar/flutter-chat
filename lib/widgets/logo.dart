@@ -1,3 +1,4 @@
+import 'package:chat/global/colors.dart';
 import 'package:flutter/material.dart';
 
 class Logo extends StatelessWidget {
@@ -7,22 +8,28 @@ class Logo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    final colors = ColorApp();
+
     return Center(
       child: Container(
-        padding: EdgeInsets.only(top: 50.0),
-        width: 170.0,
+        padding: EdgeInsets.only(top: 80.0),
+        width: 300.0,
         child: Column(
           children: <Widget>[
             Image(
-              image: AssetImage('assets/tag-logo.png'),
+              width: 170.0,
+              image: AssetImage('assets/logo.png'),
             ),
             SizedBox(
-              height: 20.0,
+              height: 25.0,
             ),
             Text(
               this.title,
               style: TextStyle(
-                fontSize: 30.0,
+                color: colors.title,
+                fontSize: 44.0,
+                fontFamily: "Geometric-415-Black-BT"
               ),
             ),
           ],

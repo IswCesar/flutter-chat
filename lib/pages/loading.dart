@@ -1,8 +1,8 @@
+import 'package:chat/pages/home.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:chat/pages/login.dart';
-import 'package:chat/pages/users.dart';
 
 import 'package:chat/services/auth.dart';
 import 'package:chat/services/socket.dart';
@@ -31,7 +31,7 @@ class LoadingPage extends StatelessWidget {
       Navigator.pushReplacement(
         context,
         PageRouteBuilder(
-          pageBuilder: (_, __, ___) => UsersPage(),
+          pageBuilder: (_, __, ___) => HomePage(),
           transitionDuration: Duration(milliseconds: 0),
         ),
       );

@@ -1,3 +1,7 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:chat/global/colors.dart';
 import 'package:chat/services/auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -16,6 +20,7 @@ class ChatMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = new ColorApp();
     final authService = Provider.of<Auth>(context, listen: false);
 
     return FadeTransition(
@@ -26,54 +31,99 @@ class ChatMessage extends StatelessWidget {
           curve: Curves.easeOut,
         ),
         child: Container(
-          child:
-              this.uid == authService.user.uid ? _myMessage() : _notMyMessage(),
+          child: this.uid == authService.user.uid
+              ? _myMessage(colors)
+              : _notMyMessage(colors),
         ),
       ),
     );
   }
 
-  Widget _myMessage() {
+  Widget _myMessage(colors) {
     return Align(
       alignment: Alignment.centerRight,
       child: Container(
-        margin: EdgeInsets.only(
-          right: 5.0,
-          bottom: 5.0,
-          left: 50.0,
-        ),
-        padding: EdgeInsets.all(8.0),
-        child: Text(
-          this.text,
-          style: TextStyle(color: Colors.white),
-        ),
         decoration: BoxDecoration(
-          color: Color(0xff4D9EF6),
-          borderRadius: BorderRadius.circular(20.0),
+          color: colors.homeBG,
+          borderRadius: BorderRadius.circular(15.0),
+        ),
+        margin: EdgeInsets.fromLTRB(30, 0, 10, 15),
+        child: Column(
+          children: [
+            dataFromBase64String(this.text) is Uint8List
+                ? Image.memory(dataFromBase64String(this.text))
+                : ListTile(
+                    contentPadding: EdgeInsets.fromLTRB(10, 5, 10, 5),
+                    trailing: CircleAvatar(
+                      radius: 24.0,
+                      backgroundImage: AssetImage('assets/logo.png'),
+                    ),
+                    title: Text(
+                      this.uid,
+                      textAlign: TextAlign.end,
+                      style: TextStyle(
+                        color: colors.buttonBG,
+                        fontFamily: "Geometric-212-BkCn-BT",
+                      ),
+                    ),
+                    subtitle: Text(
+                      this.text,
+                      textAlign: TextAlign.end,
+                      style: TextStyle(
+                        fontSize: 16.0,
+                        color: colors.messageOut,
+                        fontFamily: "Geometric-212-BkCn-BT",
+                      ),
+                    ),
+                  ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _notMyMessage() {
+  Widget _notMyMessage(colors) {
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
-        margin: EdgeInsets.only(
-          left: 5.0,
-          bottom: 5.0,
-          right: 50.0,
-        ),
-        padding: EdgeInsets.all(8.0),
-        child: Text(
-          this.text,
-          style: TextStyle(color: Colors.black87),
-        ),
         decoration: BoxDecoration(
-          color: Color(0xffE4E5E8),
-          borderRadius: BorderRadius.circular(20.0),
+          color: colors.buttonBG,
+          borderRadius: BorderRadius.circular(15.0),
+        ),
+        margin: EdgeInsets.fromLTRB(10, 0, 30, 15),
+        child: Column(
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.fromLTRB(10, 5, 10, 5),
+              leading: CircleAvatar(
+                radius: 24.0,
+                backgroundImage: AssetImage('assets/logo.png'),
+              ),
+              title: Text(
+                this.uid,
+                style: TextStyle(
+                  color: colors.homeBG,
+                ),
+              ),
+              subtitle: Text(
+                this.text,
+                style: TextStyle(
+                  fontSize: 16.0,
+                  color: colors.messageOut,
+                ),
+              ),
+            )
+          ],
         ),
       ),
     );
+  }
+
+  dataFromBase64String(String base64String) {
+    try {
+      return base64Decode(base64String);
+    } catch (e) {
+      return '';
+    }
   }
 }

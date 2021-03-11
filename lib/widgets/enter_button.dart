@@ -1,18 +1,20 @@
+import 'package:chat/global/colors.dart';
 import 'package:flutter/material.dart';
 
-class BlueButton extends StatelessWidget {
+class EnterButton extends StatelessWidget {
   final String text;
   final Function onPressed;
 
-  const BlueButton({Key key, @required this.text, @required this.onPressed})
+  const EnterButton({Key key, @required this.text, @required this.onPressed})
       : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final colors = ColorApp();
     return RaisedButton(
       elevation: 2,
       highlightElevation: 5,
-      color: Colors.blue,
+      color: colors.buttonBG,
       shape: StadiumBorder(),
       onPressed: this.onPressed,
       child: Container(
@@ -22,8 +24,9 @@ class BlueButton extends StatelessWidget {
           child: Text(
             this.text,
             style: TextStyle(
-              color: Colors.white,
-              fontSize: 17.0,
+              color: colors.loginBG,
+              fontSize: 26.0,
+              fontFamily: "Geometric-415-Black-BT"
             ),
           ),
         ),

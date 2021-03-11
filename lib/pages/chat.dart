@@ -1,8 +1,11 @@
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:chat/global/colors.dart';
 import 'package:chat/models/message_response.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:provider/provider.dart';
 
@@ -26,6 +29,12 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
   bool _isWriting = false;
   List<ChatMessage> _messages = [];
 
+  final colors = ColorApp();
+
+  /// For manage image
+  File _image;
+  final picker = ImagePicker();
+
   @override
   void initState() {
     super.initState();
@@ -35,6 +44,81 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
     this.socketService.socket.on('personal-msg', _listenMsg);
     _loadHistory(this.chatService.userTo.uid);
   }
+
+  ///
+  /// Camera methods start
+  ///
+  _imgFromCamera() async {
+    final pickedFile =
+        await picker.getImage(source: ImageSource.camera, imageQuality: 50);
+    setState(() {
+      _image = File(pickedFile.path);
+      _prepareFile();
+    });
+  }
+
+  _imgFromGallery() async {
+    final pickedFile =
+        await picker.getImage(source: ImageSource.gallery, imageQuality: 50);
+
+    setState(() {
+      _image = File(pickedFile.path);
+      _prepareFile();
+    });
+  }
+
+  _prepareFile() {
+    final base64Image = base64Encode(_image.readAsBytesSync());
+    final filename = _image.path.split('/').last;
+    _uploadFile(base64Image, filename);
+  }
+
+  void _showPicker(context) {
+    showModalBottomSheet(
+        context: context,
+        builder: (BuildContext bc) {
+          return SafeArea(
+            child: Container(
+              color: colors.loginBG,
+              child: new Wrap(
+                children: <Widget>[
+                  new ListTile(
+                      leading: new Icon(Icons.photo_library),
+                      title: new Text(
+                        'Photo Library',
+                        style: TextStyle(
+                          color: colors.title,
+                          fontFamily: "Geometric-212-BkCn-BT",
+                        ),
+                      ),
+                      onTap: () {
+                        _imgFromGallery();
+                        Navigator.of(context).pop();
+                      }),
+                  new ListTile(
+                    leading: new Icon(Icons.photo_camera),
+                    title: new Text(
+                      'Camera',
+                      style: TextStyle(
+                        color: colors.title,
+                        fontFamily: "Geometric-212-BkCn-BT",
+                      ),
+                    ),
+                    onTap: () {
+                      _imgFromCamera();
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ],
+              ),
+            ),
+          );
+        });
+  }
+
+  ///
+  /// Camera methods ends
+  ///
 
   void _loadHistory(String uid) async {
     List<Msg> chat = await this.chatService.getChat(uid);
@@ -69,31 +153,55 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final userTo = chatService.userTo;
+    final socket = Provider.of<Socket>(context);
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: colors.inputColor,
         elevation: 1,
-        centerTitle: true,
-        backgroundColor: Colors.white,
-        title: Column(
-          children: <Widget>[
-            CircleAvatar(
-              child: Text(
-                userTo.name.substring(0, 2),
-                style: TextStyle(fontSize: 12.0),
-              ),
-              backgroundColor: Colors.blue[100],
-              maxRadius: 14,
-            ),
-            SizedBox(
-              height: 3,
-            ),
-            Text(
-              userTo.name,
-              style: TextStyle(color: Colors.black87, fontSize: 12.0),
+        // centerTitle: true,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 19,
+                  backgroundImage: AssetImage('assets/logo.png'),
+                ),
+                Container(
+                  margin: EdgeInsets.only(left: 15.0),
+                  child: Text(
+                    userTo.name,
+                    style: TextStyle(
+                      fontFamily: "Geometric-212-BkCn-BT",
+                      color: colors.title,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
+        actions: <Widget>[
+          Container(
+            margin: EdgeInsets.only(right: 15.0),
+            child: GestureDetector(
+              child: Image.asset(
+                'assets/common/exit_button.png',
+                fit: BoxFit.contain,
+                height: 32,
+                width: 28.0,
+              ),
+              onTap: () {
+                socket.disconnect();
+                Navigator.pushReplacementNamed(context, 'login');
+                Auth.deleteToken();
+              },
+            ),
+          ),
+        ],
       ),
+      backgroundColor: colors.labelAccountColor,
       body: Container(
         child: Column(
           children: <Widget>[
@@ -121,7 +229,8 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
   _inputchat() {
     return SafeArea(
       child: Container(
-        margin: EdgeInsets.symmetric(horizontal: 8.0),
+        decoration: BoxDecoration(color: colors.inputColor),
+        padding: EdgeInsets.symmetric(horizontal: 8.0),
         child: Row(
           children: <Widget>[
             Flexible(
@@ -139,8 +248,25 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
                 },
                 decoration: InputDecoration.collapsed(
                   hintText: 'Send Message',
+                  hintStyle: TextStyle(
+                    color: colors.title,
+                  ),
+                ),
+                style: TextStyle(
+                  color: colors.title,
                 ),
                 focusNode: _focusNode,
+              ),
+            ),
+            Container(
+              child: GestureDetector(
+                onTap:() {
+                      _showPicker(context);
+                    },
+                child: IconTheme(
+                  data: IconThemeData(color: colors.labelAccountColor),
+                  child: Icon(Icons.image),
+                ),
               ),
             ),
             Container(
@@ -157,11 +283,11 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
                       margin: EdgeInsets.symmetric(horizontal: 4.0),
                       child: IconTheme(
                         data: IconThemeData(
-                          color: Colors.blue[400],
+                          color: colors.title,
                         ),
                         child: IconButton(
-                          highlightColor: Colors.transparent,
-                          splashColor: Colors.transparent,
+                          highlightColor: colors.loginBG,
+                          splashColor: colors.loginBG,
                           icon: Icon(Icons.send),
                           onPressed: _isWriting
                               ? () => _handleSubmit(
@@ -175,6 +301,28 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
         ),
       ),
     );
+  }
+
+  _uploadFile(String image, String filename) {
+
+    final newMessage = ChatMessage(
+      uid: authService.user.uid,
+      text: image,
+      animationController: AnimationController(
+        vsync: this,
+        duration: Duration(milliseconds: 200),
+      ),
+    );
+
+    _messages.insert(0, newMessage);
+    newMessage.animationController.forward();
+
+    this.socketService.emit('personal-msg', {
+      'from': authService.user.uid,
+      'to': this.chatService.userTo.uid,
+      'msg': image,
+      'filename': filename
+    });
   }
 
   _handleSubmit(String text) {

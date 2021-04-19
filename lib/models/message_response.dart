@@ -14,20 +14,24 @@ class MessageResponse {
   MessageResponse({
     this.ok,
     this.msg,
+    this.type
   });
 
   String ok;
   List<Msg> msg;
+  int type;
 
   factory MessageResponse.fromJson(Map<String, dynamic> json) =>
       MessageResponse(
         ok: json["ok"],
         msg: List<Msg>.from(json["msg"].map((x) => Msg.fromJson(x))),
+        type: json["type"],
       );
 
   Map<String, dynamic> toJson() => {
         "ok": ok,
         "msg": List<dynamic>.from(msg.map((x) => x.toJson())),
+        "type": type
       };
 }
 
@@ -36,6 +40,7 @@ class Msg {
     this.from,
     this.to,
     this.msg,
+    this.type,
     this.createdAt,
     this.updatedAt,
   });
@@ -43,6 +48,7 @@ class Msg {
   String from;
   String to;
   String msg;
+  int type;
   DateTime createdAt;
   DateTime updatedAt;
 
@@ -50,6 +56,7 @@ class Msg {
         from: json["from"],
         to: json["to"],
         msg: json["msg"],
+        type: json["type"],
         createdAt: DateTime.parse(json["createdAt"]),
         updatedAt: DateTime.parse(json["updatedAt"]),
       );
@@ -58,6 +65,7 @@ class Msg {
         "from": from,
         "to": to,
         "msg": msg,
+        "type": type,
         "createdAt": createdAt.toIso8601String(),
         "updatedAt": updatedAt.toIso8601String(),
       };

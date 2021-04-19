@@ -3,10 +3,11 @@ import 'dart:io';
 
 import 'package:chat/global/colors.dart';
 import 'package:chat/models/message_response.dart';
+import 'package:chat/widgets/recorder_audio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:image_picker/image_picker.dart';
-
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
 import 'package:chat/widgets/chat_message.dart';
@@ -21,28 +22,42 @@ class ChatPage extends StatefulWidget {
 }
 
 class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
+  Directory appDirectory;
   ChatService chatService;
   Socket socketService;
   Auth authService;
-  final _textEditingController = TextEditingController();
-  final _focusNode = FocusNode();
   bool _isWriting = false;
   List<ChatMessage> _messages = [];
+
+  final _textEditingController = TextEditingController();
+  final _focusNode = FocusNode();
 
   final colors = ColorApp();
 
   /// For manage image
   File _image;
+  File _video;
   final picker = ImagePicker();
+
+  // For store audios
+  List<String> records;
 
   @override
   void initState() {
     super.initState();
+    records = [];
     this.chatService = Provider.of<ChatService>(context, listen: false);
     this.socketService = Provider.of<Socket>(context, listen: false);
     this.authService = Provider.of<Auth>(context, listen: false);
     this.socketService.socket.on('personal-msg', _listenMsg);
     _loadHistory(this.chatService.userTo.uid);
+    getApplicationDocumentsDirectory().then((value) {
+      appDirectory = value;
+      setState(() {
+        print('Directory:');
+        print(appDirectory);
+      });
+    });
   }
 
   ///
@@ -55,6 +70,16 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
       _image = File(pickedFile.path);
       _prepareFile();
     });
+  }
+  
+  _videoFromCamera() async {
+    final pickedFile =
+        await picker.getVideo(source: ImageSource.camera);
+      _video = File(pickedFile.path);
+      final video = await this.chatService.uploadFile(_video.path, 'video');
+      print(video);
+      print('_videoFromCamera called...');
+      _uploadFile(video.filename, 4);
   }
 
   _imgFromGallery() async {
@@ -70,7 +95,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
   _prepareFile() {
     final base64Image = base64Encode(_image.readAsBytesSync());
     final filename = _image.path.split('/').last;
-    _uploadFile(base64Image, filename);
+    _uploadImage(base64Image, filename);
   }
 
   void _showPicker(context) {
@@ -85,27 +110,27 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
                   new ListTile(
                       leading: new Icon(Icons.photo_library),
                       title: new Text(
-                        'Photo Library',
+                        'Take photo',
                         style: TextStyle(
                           color: colors.title,
                           fontFamily: "Geometric-212-BkCn-BT",
                         ),
                       ),
                       onTap: () {
-                        _imgFromGallery();
+                        _imgFromCamera();
                         Navigator.of(context).pop();
                       }),
                   new ListTile(
                     leading: new Icon(Icons.photo_camera),
                     title: new Text(
-                      'Camera',
+                      'Take video',
                       style: TextStyle(
                         color: colors.title,
                         fontFamily: "Geometric-212-BkCn-BT",
                       ),
                     ),
                     onTap: () {
-                      _imgFromCamera();
+                      _videoFromCamera();
                       Navigator.of(context).pop();
                     },
                   ),
@@ -126,10 +151,13 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
     final history = chat.map((e) => ChatMessage(
           text: e.msg,
           uid: e.from,
+          type: e.type,
           animationController: AnimationController(
               vsync: this, duration: Duration(milliseconds: 0))
             ..forward(),
         ));
+
+    if (!this.mounted) return;
 
     setState(() {
       _messages.insertAll(0, history);
@@ -141,6 +169,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
     ChatMessage message = ChatMessage(
       text: payload['msg'],
       uid: payload['from'],
+      type: payload['type'],
       animationController: AnimationController(
           vsync: this, duration: Duration(milliseconds: 300)),
     );
@@ -258,11 +287,25 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
                 focusNode: _focusNode,
               ),
             ),
+            RecorderAudio(onSaved: _onRecordComplete),
             Container(
+              margin: EdgeInsets.only(right: 8.0),
               child: GestureDetector(
-                onTap:() {
-                      _showPicker(context);
-                    },
+                onTap: () {
+                  _showPicker(context);
+                },
+                child: IconTheme(
+                  data: IconThemeData(color: colors.labelAccountColor),
+                  child: Icon(Icons.camera_alt_rounded),
+                ),
+              ),
+            ),
+            Container(
+              margin: EdgeInsets.only(right: 0.0),
+              child: GestureDetector(
+                onTap: () {
+                  _imgFromGallery();
+                },
                 child: IconTheme(
                   data: IconThemeData(color: colors.labelAccountColor),
                   child: Icon(Icons.image),
@@ -270,7 +313,6 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
               ),
             ),
             Container(
-              margin: EdgeInsets.symmetric(horizontal: 4.0),
               child: Platform.isIOS
                   ? CupertinoButton(
                       child: Text('Enviar'),
@@ -280,7 +322,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
                           : null,
                     )
                   : Container(
-                      margin: EdgeInsets.symmetric(horizontal: 4.0),
+                      margin: EdgeInsets.only(right: 0.0),
                       child: IconTheme(
                         data: IconThemeData(
                           color: colors.title,
@@ -303,11 +345,77 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
     );
   }
 
-  _uploadFile(String image, String filename) {
+  // Audio starts
+
+  _onRecordComplete() {
+    records.clear();
+    appDirectory.list().listen((onData) {
+      if (onData.path.endsWith(".aac")) {
+        records.add(onData.path);
+      }
+    }).onDone(() async {
+      records.sort();
+      records = records.reversed.toList();
+      final audio = await this.chatService.uploadAudio(records[0], 'audio1');
+      await _uploadAudio(audio.filename);
+    });
+  }
+
+  // Audio ends
+
+  // Uploads to server start
+
+  _uploadFile(String text, int type) {
+    final newMessage = ChatMessage(
+      uid: authService.user.uid,
+      text: text,
+      type: type,
+      animationController: AnimationController(
+        vsync: this,
+        duration: Duration(milliseconds: 200),
+      ),
+    );
+
+    _messages.insert(0, newMessage);
+    newMessage.animationController.forward();
+
+    this.socketService.emit('personal-msg', {
+      'from': authService.user.uid,
+      'to': this.chatService.userTo.uid,
+      'msg': text,
+      'type': type
+    });
+  }
+
+  _uploadAudio(String audioPath) {
 
     final newMessage = ChatMessage(
       uid: authService.user.uid,
+      text: audioPath,
+      type: 3,
+      animationController: AnimationController(
+        vsync: this,
+        duration: Duration(milliseconds: 200),
+      ),
+    );
+
+    _messages.insert(0, newMessage);
+    newMessage.animationController.forward();
+
+    this.socketService.emit('personal-msg', {
+      'from': authService.user.uid,
+      'to': this.chatService.userTo.uid,
+      'msg': audioPath,
+      'type': 3
+    });
+  }
+  
+
+  _uploadImage(String image, String filename) {
+    final newMessage = ChatMessage(
+      uid: authService.user.uid,
       text: image,
+      type: 2,
       animationController: AnimationController(
         vsync: this,
         duration: Duration(milliseconds: 200),
@@ -321,10 +429,11 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
       'from': authService.user.uid,
       'to': this.chatService.userTo.uid,
       'msg': image,
-      'filename': filename
+      'filename': filename,
+      'type': '2'
     });
   }
-
+  
   _handleSubmit(String text) {
     if (text.length == 0) return;
 
@@ -334,6 +443,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
     final newMessage = ChatMessage(
       uid: authService.user.uid,
       text: text,
+      type: 1,
       animationController: AnimationController(
         vsync: this,
         duration: Duration(milliseconds: 200),
@@ -350,9 +460,12 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
     this.socketService.emit('personal-msg', {
       'from': authService.user.uid,
       'to': this.chatService.userTo.uid,
-      'msg': text
+      'msg': text,
+      'type': 1
     });
   }
+
+  // Uploads to server end
 
   @override
   void dispose() {
